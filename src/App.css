@@ -1,0 +1,546 @@
+/*
+ * レイアウトの寸法。作品側で .app に同名の変数を指定すれば上書きできる。
+ * 会場のスクリーンで後ろの席から読めることを基準にしている。
+ */
+.app {
+  /* --nv-text-scale は設定パネルの「文字」スライダーから NovelApp が指定する */
+  --nv-text-scale: 1;
+  --nv-text-size: calc(min(3.8vh, 5.2vw) * var(--nv-text-scale));
+  --nv-speaker-size: calc(min(3vh, 4.4vw) * var(--nv-text-scale));
+  --nv-window-width: min(94vw, 150vh);
+  /* ウィンドウの最小の高さ。文章が収まらないときは --nv-window-max-height まで上に伸びる */
+  --nv-window-height: calc(27vh * var(--nv-text-scale));
+  --nv-window-max-height: 60vh;
+  --nv-window-bottom: 3vh;
+  --nv-character-height: 72vh;
+  /* 立ち絵の下端。ウィンドウの裏に入る高さにして、切れ目を見せない */
+  --nv-character-bottom: 12vh;
+  --nv-accent: #ffd36b;
+
+  width: 100vw;
+  height: 100dvh;
+  height: 100vh; /* fallback */
+  overflow: hidden;
+}
+
+/* 縦長の画面（スマホ縦持ち）は1行の文字数が少ないので、ウィンドウを高くする */
+@media (orientation: portrait) {
+  .app {
+    --nv-window-height: calc(36vh * var(--nv-text-scale));
+  }
+}
+
+@supports (height: 100dvh) {
+  .app {
+    height: 100dvh;
+  }
+}
+
+.scenario-player {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+.talking-character {
+  position: absolute;
+  inset: 0;
+}
+
+/* 立ち絵はメッセージウィンドウの後ろに立ち、下半身がウィンドウに隠れる */
+.character-stage {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--nv-character-bottom);
+  height: var(--nv-character-height);
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.character-stage canvas {
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: bottom;
+}
+
+/* メッセージウィンドウ（画面下、中央寄せ） */
+.dialogue-box {
+  position: absolute;
+  left: 50%;
+  bottom: var(--nv-window-bottom);
+  transform: translateX(-50%);
+  z-index: 3;
+  width: var(--nv-window-width);
+  min-height: var(--nv-window-height);
+  max-height: var(--nv-window-max-height);
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--nv-text-size) * 0.9) calc(var(--nv-text-size) * 1.4);
+  background: linear-gradient(
+    to bottom,
+    rgba(12, 16, 32, 0.78),
+    rgba(12, 16, 32, 0.88)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
+  cursor: pointer;
+  user-select: none;
+  backdrop-filter: blur(4px);
+}
+
+/* ネームプレート（ウィンドウ左上に重ねる） */
+.dialogue-speaker {
+  position: absolute;
+  left: calc(var(--nv-text-size) * 0.8);
+  top: 0;
+  transform: translateY(-60%);
+  padding: 0.25em 1.2em;
+  min-width: 6em;
+  text-align: center;
+  color: #1a1a2e;
+  background: var(--nv-accent);
+  border-radius: 6px;
+  font-size: var(--nv-speaker-size);
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.dialogue-text {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  color: #fff;
+  font-size: var(--nv-text-size);
+  line-height: 1.65;
+  letter-spacing: 0.03em;
+  white-space: pre-wrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.dialogue-cursor {
+  display: inline-block;
+  margin-left: 0.3em;
+  animation: cursor-blink 0.8s ease-in-out infinite;
+  font-size: 0.6em;
+  vertical-align: middle;
+  color: var(--nv-accent);
+}
+
+@keyframes cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* オープニング画面 */
+.opening-screen {
+  cursor: pointer;
+  user-select: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-size: contain;
+  background-color: #000;
+}
+
+.opening-title {
+  position: absolute;
+  top: 9%;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0 16px;
+  text-align: center;
+  color: #fff;
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  font-weight: 600;
+  font-size: min(9vh, 7vw);
+  white-space: nowrap;
+  letter-spacing: 0.06em;
+  text-shadow:
+    0 0 0.3em rgba(60, 20, 0, 0.7),
+    0 0.05em 0.15em rgba(0, 0, 0, 0.6);
+}
+
+.opening-prompt {
+  position: absolute;
+  bottom: 6%;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: min(3.5vh, 6vw);
+  text-shadow: 0 0 0.4em rgba(0, 0, 0, 0.8);
+  animation: cursor-blink 1.5s ease-in-out infinite;
+}
+
+/* ツールバー（右上） */
+.toolbar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.7);
+  box-sizing: border-box;
+}
+
+.toolbar-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* 音量パネル */
+.volume-panel {
+  position: relative;
+}
+
+.volume-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+}
+
+.volume-panel-dropdown {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  z-index: 21;
+  min-width: 200px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.volume-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: default;
+}
+
+.volume-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  width: 38px;
+  flex-shrink: 0;
+}
+
+.volume-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.volume-value {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  width: 24px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* シーンメニュー */
+.scene-menu {
+  position: relative;
+}
+
+.scene-menu-toggle {
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+}
+
+.scene-menu-icon {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 1px;
+}
+
+.scene-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+}
+
+.scene-menu-list {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  z-index: 21;
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+  min-width: 260px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+}
+
+.scene-menu-item {
+  padding: 10px 16px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.scene-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.scene-menu-item--active {
+  color: #ffd700;
+}
+
+/* スライド表示 */
+.slide-display {
+  position: absolute;
+  top: 2vh;
+  left: 2vw;
+  right: 2vw;
+  bottom: calc(var(--nv-window-height) + var(--nv-window-bottom) + 2vh);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1;
+}
+
+.slide-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* トランジションナレーション（暗転） */
+.transition-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 5;
+}
+
+.transition-narration {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  cursor: pointer;
+  user-select: none;
+}
+
+.transition-text {
+  color: #fff;
+  font-size: calc(4.5vh * var(--nv-text-scale));
+  line-height: 2;
+  text-align: center;
+  max-width: 80vw;
+  white-space: pre-wrap;
+}
+
+.transition-cursor {
+  display: inline-block;
+  margin-left: 8px;
+  animation: cursor-blink 0.8s ease-in-out infinite;
+  font-size: 2.5vh;
+  vertical-align: middle;
+}
+
+/* コンパクトモード（スライド表示時）- キャラをスライド右下に小さく表示 */
+.talking-character--compact .character-stage {
+  left: auto;
+  right: 3vw;
+  bottom: calc(var(--nv-window-height) + var(--nv-window-bottom));
+  height: 20vh;
+  width: 15vw;
+  z-index: 2;
+}
+
+
+/* エンドロール */
+.ending-roll {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ending-roll-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5vh;
+  animation: scroll-up 35s linear forwards;
+}
+
+.ending-roll-line {
+  color: #fff;
+  font-size: 3.5vh;
+  text-align: center;
+  white-space: pre-wrap;
+}
+
+.ending-roll-blank {
+  height: 3vh;
+}
+
+@keyframes scroll-up {
+  0% {
+    transform: translateY(100vh);
+  }
+  100% {
+    transform: translateY(-100%);
+  }
+}
+
+.ending-fin {
+  color: #fff;
+  font-size: 6vh;
+  font-style: italic;
+  letter-spacing: 0.1em;
+  animation: fade-in 2s ease-in forwards;
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* セリフ中の印（RichText） */
+.rt-em {
+  color: var(--nv-accent);
+  font-weight: bold;
+}
+
+.rt-code {
+  padding: 0 0.25em;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.14);
+  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.rt-term {
+  color: var(--nv-accent);
+  text-decoration: underline dotted;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.2em;
+}
+
+.rt-link {
+  text-decoration-style: solid;
+  cursor: pointer;
+}
+
+.rt-link:hover {
+  color: #fff;
+}
+
+.rt-tip {
+  position: fixed;
+  z-index: 50;
+  max-width: min(36em, 60vw);
+  padding: 0.5em 0.9em;
+  transform: translateY(calc(-100% - 0.5em));
+  color: #1a1a2e;
+  background: #fff8e6;
+  border: 1px solid var(--nv-accent, #ffd36b);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  font-size: min(2.8vh, 4.2vw);
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+.volume-checkbox {
+  margin: 0;
+  accent-color: var(--nv-accent);
+  cursor: pointer;
+}
+
+.volume-note {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+}
+
+.ending-roll-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+  text-underline-offset: 0.2em;
+}
