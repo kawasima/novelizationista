@@ -212,9 +212,13 @@ Voices are assigned per character ID in `voices.json`. `vvm` is the voice model 
 }
 ```
 
-File names are a hash of the character ID, the text to be read and the voice settings. Existing files are not regenerated, so after editing one line only that line is synthesized again. Changing a character's voice or speed in `voices.json` regenerates all of that character's lines. Old mp3 files that are no longer referenced are not deleted; remove them by hand if they bother you.
+`voices.json` accepts exactly these five keys per character. A missing key, an unknown key or a value of the wrong type stops the script, so a setting that would have no effect is not silently ignored.
 
-The mp3 files are encoded with VBR quality 8 by default, which is small and still clear enough for synthesized speech. `--vbr-quality` takes a value from 0 (best, largest) to 9 (smallest), and `--bitrate 48k` switches to a constant bit rate instead. The encoding is not part of the file name hash, so changing it does not regenerate existing files; delete `public/audio/` and run the script again to re-encode everything.
+The mp3 files are encoded with VBR quality 8 by default, which is small and still clear enough for synthesized speech. `--vbr-quality` takes a value from 0 (best, largest) to 9 (smallest), and `--bitrate 48k` switches to a constant bit rate instead; it must be a positive integer followed by `k`. ffmpeg rounds the bit rate to one the mp3 format supports at the voice's sample rate, so the file may not have exactly the rate you asked for.
+
+Each file name is a hash of everything that determines its contents: the text to be read, the voice model file's contents, `style_id`, `speed`, `intonation`, the mp3 encoding, the versions of VOICEVOX Core, ONNX Runtime and the dictionary, and the source code of the synthesis and encoding functions in `generate.py`. A file with a matching name is reused, and anything else is synthesized. Editing one line regenerates only that line; changing a voice, the encoding or the VOICEVOX installation regenerates every line it affects; going back to earlier settings reuses the earlier files if they are still there. Because files are never overwritten, several scenarios can share one `public/audio/`. The display `name` does not affect the audio and is not part of the hash.
+
+Each mp3 is written to a temporary file and moved into place only after encoding succeeds, so an interrupted run never leaves a broken file behind; the next run simply synthesizes the missing lines. The scenario JSON is replaced the same way. Old mp3 files that are no longer referenced are not deleted; remove them by hand if they bother you.
 
 Running `txt2scenario.py` rewrites the scenario JSON and drops the `audio` fields, so run `generate.py` after it. When no dialogue changed, nothing is synthesized and the paths are simply reattached. Putting both in the work's `package.json` keeps this easy.
 
@@ -278,7 +282,10 @@ Layout dimensions are CSS custom properties. Override them by setting the same v
 ```sh
 npm install
 npm run typecheck
+python3 -m unittest discover -s voice-gen
 ```
+
+The Python tests do not need VOICEVOX. The ones that encode mp3 files need `ffmpeg` and are skipped without it.
 
 The engine has no screen of its own. Check changes by running `npm run dev` in a work's project; because it is a `file:` dependency, edits to the engine show up in the work's dev server right away.
 
