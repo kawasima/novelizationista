@@ -214,6 +214,8 @@ Voices are assigned per character ID in `voices.json`. `vvm` is the voice model 
 
 File names are a hash of the character ID, the text to be read and the voice settings. Existing files are not regenerated, so after editing one line only that line is synthesized again. Changing a character's voice or speed in `voices.json` regenerates all of that character's lines. Old mp3 files that are no longer referenced are not deleted; remove them by hand if they bother you.
 
+The mp3 files are encoded with VBR quality 8 by default, which is small and still clear enough for synthesized speech. `--vbr-quality` takes a value from 0 (best, largest) to 9 (smallest), and `--bitrate 48k` switches to a constant bit rate instead. The encoding is not part of the file name hash, so changing it does not regenerate existing files; delete `public/audio/` and run the script again to re-encode everything.
+
 Running `txt2scenario.py` rewrites the scenario JSON and drops the `audio` fields, so run `generate.py` after it. When no dialogue changed, nothing is synthesized and the paths are simply reattached. Putting both in the work's `package.json` keeps this easy.
 
 ```json

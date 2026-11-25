@@ -28,7 +28,19 @@ def parse_args() -> argparse.Namespace:
                         help="キャラクター ID → 音声設定の JSON（既定: voices.json）")
     parser.add_argument("--public-dir", type=Path, default=Path("public"),
                         help="音声を書き出す public ディレクトリ。<public-dir>/audio/ に出力（既定: public）")
+    encoding = parser.add_mutually_exclusive_group()
+    encoding.add_argument("--vbr-quality", type=int, choices=range(10), default=8, metavar="0-9",
+                          help="mp3 の VBR 品質。0 が最高品質で、数字が大きいほど小さくなる（既定: 8）")
+    encoding.add_argument("--bitrate",
+                          help="mp3 を固定ビットレートで書き出す（例: 32k）。指定すると --vbr-quality は使わない")
     return parser.parse_args()
+
+
+def mp3_encoding_args(args: argparse.Namespace) -> list[str]:
+    """ffmpeg に渡す mp3 のエンコード設定"""
+    if args.bitrate:
+        return ["-b:a", args.bitrate]
+    return ["-q:a", str(args.vbr_quality)]
 
 
 def audio_hash(char_id: str, text: str, voice: dict) -> str:
@@ -61,6 +73,7 @@ def main() -> None:
     args = parse_args()
     scenario_path: Path = args.scenario
     audio_dir: Path = args.public_dir / "audio"
+    encoding_args = mp3_encoding_args(args)
 
     # 声の割り当て: {"<characterId>": {"name", "vvm", "style_id", "speed", "intonation"}}
     character_voice = json.loads(args.voices.read_text(encoding="utf-8"))
@@ -144,7 +157,7 @@ def main() -> None:
             wav_path.write_bytes(wav)
 
             subprocess.run(
-                ["ffmpeg", "-y", "-i", str(wav_path), "-q:a", "2", str(mp3_path)],
+                ["ffmpeg", "-y", "-i", str(wav_path), *encoding_args, str(mp3_path)],
                 capture_output=True,
                 check=True,
             )
