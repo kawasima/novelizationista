@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from txt2scenario import mark_first_occurrences, parse_markup  # noqa: E402
+from txt2scenario import mark_first_occurrences, parse_markup, write_text_atomic  # noqa: E402
 
 TERM_FIELDS = ("href", "help", "style")
 
@@ -41,7 +41,8 @@ def load_json(path: Path, default: dict) -> dict:
 
 
 def write_json(path: Path, data: dict) -> None:
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    # 原稿は翻訳者が編集するファイルなので、途中で止まっても元の内容が残るよう置き換えで書く
+    write_text_atomic(path, json.dumps(data, ensure_ascii=False, indent=2) + "\n")
 
 
 def sync_source(scenario: dict, config: dict, source: dict, language: str) -> dict:
