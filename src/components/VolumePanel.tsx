@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useVolume } from "../hooks/useVolumeControl";
+import { languageName, useLanguage } from "../i18n";
 
 interface SliderProps {
   label: string;
@@ -37,6 +38,7 @@ export function VolumePanel() {
     bgmVolume, voiceVolume, voiceRate, textScale, linksEnabled,
     setBgmVolume, setVoiceVolume, setVoiceRate, setTextScale, setLinksEnabled,
   } = useVolume();
+  const { t, language, languages, setLanguage } = useLanguage();
   const [open, setOpen] = useState(false);
 
   return (
@@ -44,7 +46,7 @@ export function VolumePanel() {
       <button
         className="toolbar-btn"
         onClick={() => setOpen((v) => !v)}
-        aria-label="音量・表示設定"
+        aria-label={t.settings}
       >
         {bgmVolume === 0 && voiceVolume === 0 ? "\u{1F507}" : "\u{1F509}"}
       </button>
@@ -54,18 +56,34 @@ export function VolumePanel() {
           <div className="volume-panel-dropdown">
             <SettingSlider label="BGM" value={bgmVolume} min={0} max={1} step={0.01} format={percent} onChange={setBgmVolume} />
             <SettingSlider label="Voice" value={voiceVolume} min={0} max={1} step={0.01} format={percent} onChange={setVoiceVolume} />
-            <SettingSlider label="速度" value={voiceRate} min={0.8} max={2} step={0.1} format={times} onChange={setVoiceRate} />
-            <SettingSlider label="文字" value={textScale} min={0.8} max={1.5} step={0.1} format={times} onChange={setTextScale} />
+            <SettingSlider label={t.speed} value={voiceRate} min={0.8} max={2} step={0.1} format={times} onChange={setVoiceRate} />
+            <SettingSlider label={t.textSize} value={textScale} min={0.8} max={1.5} step={0.1} format={times} onChange={setTextScale} />
             <label className="volume-row">
-              <span className="volume-label">リンク</span>
+              <span className="volume-label">{t.links}</span>
               <input
                 type="checkbox"
                 className="volume-checkbox"
                 checked={linksEnabled}
                 onChange={(e) => setLinksEnabled(e.target.checked)}
               />
-              <span className="volume-note">{linksEnabled ? "クリックで開く" : "開かない"}</span>
+              <span className="volume-note">{linksEnabled ? t.linksOn : t.linksOff}</span>
             </label>
+            {languages.length > 1 && (
+              <div className="volume-row">
+                <span className="volume-label">{t.language}</span>
+                <div className="language-switch">
+                  {languages.map((code) => (
+                    <button
+                      key={code}
+                      className={`language-option${code === language ? " language-option--active" : ""}`}
+                      onClick={() => setLanguage(code)}
+                    >
+                      {languageName(code)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}

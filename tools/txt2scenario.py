@@ -28,6 +28,7 @@ maxLineLength を超える行は、括弧の外の文末（。？！）で複数
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -147,10 +148,15 @@ def mark_first_occurrences(scene: dict, terms: dict[str, dict]) -> None:
                 line.pop("spans", None)
 
 
+def line_id(text: str) -> str:
+    """表示用テキストから作る行の ID。翻訳との対応付けに使う。原文を直すと変わる"""
+    return hashlib.sha256(text.encode()).hexdigest()[:12]
+
+
 def make_line(character_id: str | None, text: str, readings: dict[str, str],
               terms: dict[str, dict], where: str) -> dict:
     display, spans = parse_markup(text, terms, where)
-    line: dict = {"characterId": character_id, "text": display}
+    line: dict = {"id": line_id(display), "characterId": character_id, "text": display}
     reading = display
     for word, yomi in readings.items():
         reading = reading.replace(word, yomi)

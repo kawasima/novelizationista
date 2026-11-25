@@ -63,10 +63,13 @@ export const TalkingCharacter = forwardRef<TalkingCharacterHandle, Props>(functi
 
   const { voiceVolume, voiceRate } = useVolume();
 
-  const { displayedText, isTalking, isComplete, skip } = useTextReveal(
-    currentLine.text,
-    CHAR_SPEED_MS / voiceRate,
-  );
+  // 訳文は原文と文字数が違うので、文字送りを音声の長さに合わせる（音声より少し早く出し終える）
+  const [audioDuration, setAudioDuration] = useState(0);
+  const msPerChar = currentLine.translated && audioDuration > 0 && currentLine.text.length > 0
+    ? (audioDuration * 1000 * 0.9) / voiceRate / currentLine.text.length
+    : CHAR_SPEED_MS / voiceRate;
+
+  const { displayedText, isTalking, isComplete, skip } = useTextReveal(currentLine.text, msPerChar);
 
   // --- 音声再生 ---
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -91,6 +94,7 @@ export const TalkingCharacter = forwardRef<TalkingCharacterHandle, Props>(functi
       audioRef.current = null;
     }
     setIsAudioPlaying(false);
+    setAudioDuration(0);
     // 新しい音声を再生
     if (currentLine.audio) {
       const audio = new Audio(currentLine.audio);
@@ -100,6 +104,7 @@ export const TalkingCharacter = forwardRef<TalkingCharacterHandle, Props>(functi
       audioRef.current = audio;
       setIsAudioPlaying(true);
       audio.addEventListener("ended", () => setIsAudioPlaying(false));
+      audio.addEventListener("loadedmetadata", () => setAudioDuration(audio.duration));
       audio.play().catch(() => setIsAudioPlaying(false));
     }
     return () => {

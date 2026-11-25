@@ -544,3 +544,24 @@
   text-decoration-color: rgba(255, 255, 255, 0.4);
   text-underline-offset: 0.2em;
 }
+
+.language-switch {
+  display: flex;
+  gap: 6px;
+}
+
+.language-option {
+  padding: 2px 10px;
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.language-option--active {
+  color: #1a1a2e;
+  background: var(--nv-accent);
+  border-color: var(--nv-accent);
+}

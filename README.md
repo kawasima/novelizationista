@@ -231,6 +231,56 @@ Running `txt2scenario.py` rewrites the scenario JSON and drops the `audio` field
 }
 ```
 
+## Translations
+
+Voice lines stay in the scenario's original language; a translation replaces only the text. Each line of the scenario JSON carries an `id`, a hash of its original text written by `txt2scenario.py`. Translations are matched to lines by that id, so editing one original line only invalidates that line's translation.
+
+Register each language in `NovelConfig`. The original language defaults to `ja`; set `language` if it is something else.
+
+```ts
+const config: NovelConfig = {
+  scenario: "/scenarios/episode1.json",
+  credits: "/scenarios/credits.json",
+  opening: { /* ... */ },
+  translations: {
+    en: {
+      scenario: "/scenarios/episode1.en.json",
+      credits: "/scenarios/credits.en.json",   // optional; the original credits otherwise
+    },
+  },
+};
+```
+
+`tools/translate.py` manages two files: a source file the translator edits, and the JSON the engine reads.
+
+```sh
+python3 node_modules/novelizationista/tools/translate.py \
+  --scenario public/scenarios/episode1.json --config scenario/config.json \
+  --source scenario/episode1.en.json --language en -o public/scenarios/episode1.en.json
+```
+
+Each run brings the source file in line with the scenario. New lines, scene names, characters, glossary entries and slides are added with empty translations. Translations whose original text no longer exists move to `stale`, so they can be reused. The script then compiles the JSON for the engine and reports what is still untranslated. Untranslated lines are shown in the original language.
+
+```json
+{
+  "language": "en",
+  "title": "Title in English",
+  "characters": { "aoi": "Aoi", "ren": "Ren" },
+  "scenes": { "屋上": "The Rooftop" },
+  "terms": { "文化祭": { "help": "The school festival, held in October" } },
+  "slides": { "/images/slides/letter.png": "/images/slides/en/letter.png" },
+  "lines": [
+    { "id": "3f1c…", "source": "これ、下駄箱に入ってた。差出人の名前がない", "text": "This was in my shoe locker. There's no name on it." },
+    { "id": "8a02…", "source": "文化祭の準備があるから、断るつもりだけど", "text": "I'll turn it down. I have to prepare for the [school festival|文化祭]." }
+  ],
+  "stale": []
+}
+```
+
+Translations use the same inline markup as the manuscript. Glossary keys stay in the original language, so a translated word refers to its entry with `[shown text|key]`. A glossary entry's `match` can be overridden in `terms` for `auto: "first"` to work on the translated text.
+
+The language is chosen from `?lang=` in the URL, then the browser's language settings, falling back to the original language. The settings panel shows a language switch when translations are configured; switching keeps the current line, and is not remembered, so reopening the page goes back to the browser's language. Translated lines reveal their text over the length of the voice line instead of at a fixed speed per character, so the text finishes just before the voice does. The engine's own UI text (the start prompt, settings labels) is available in Japanese and English.
+
 ## Ending credits
 
 The `lines` of `credits.json` scroll from top to bottom. An empty string is a blank line. A line that needs a link is written as an object. With `bgm`, the music switches to that track for the credits.

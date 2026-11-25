@@ -1,6 +1,8 @@
 export { NovelApp } from "./NovelApp";
 export type {
   NovelConfig,
+  TranslationFiles,
+  ScenarioTranslation,
   OpeningScreen,
   Scenario,
   Scene,
