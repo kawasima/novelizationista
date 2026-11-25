@@ -30,7 +30,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
+import tempfile
 from pathlib import Path
 
 SPEECH = re.compile(r"^(?P<name>[^「」\s]+)「(?P<text>.*)」$")
@@ -257,9 +259,25 @@ def main() -> None:
     }
     if terms:
         scenario["terms"] = terms
-    args.output.write_text(json.dumps(scenario, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_text_atomic(args.output, json.dumps(scenario, ensure_ascii=False, indent=2) + "\n")
     lines = sum(len(s["dialogue"]) for s in scenario["scenes"])
     print(f"{args.output}: シーン {len(scenario['scenes'])}、行 {lines}")
+
+
+def write_text_atomic(path: Path, text: str) -> None:
+    """一時ファイルに書いてから置き換える。途中で止まっても path は元の内容のまま残る"""
+    fd, name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    os.close(fd)
+    tmp = Path(name)
+    try:
+        umask = os.umask(0)
+        os.umask(umask)
+        os.chmod(tmp, 0o666 & ~umask)
+        tmp.write_text(text, encoding="utf-8")
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
 
 
 if __name__ == "__main__":
