@@ -6,6 +6,7 @@ import type { TransitionNarrationHandle } from "./TransitionNarration";
 import { EndingRoll } from "./EndingRoll";
 import { VolumePanel } from "./VolumePanel";
 import { TermsContext } from "./RichText";
+import { useLanguage } from "../i18n";
 import { useVolume } from "../hooks/useVolumeControl";
 import type { Scenario, Scene, Credits, OpeningScreen } from "../types/sprite";
 
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function ScenarioPlayer({ scenario, credits, opening }: Props) {
+  const { t } = useLanguage();
   const [phase, setPhase] = useState<Phase>("opening");
   const [sceneIndex, setSceneIndex] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -149,7 +151,7 @@ export function ScenarioPlayer({ scenario, credits, opening }: Props) {
         onClick={handleOpeningClick}
       >
         {opening.title && <h1 className="opening-title">{opening.title}</h1>}
-        <div className="opening-prompt">Click to Start</div>
+        <div className="opening-prompt">{t.start}</div>
       </div>
     );
   }
@@ -178,7 +180,7 @@ export function ScenarioPlayer({ scenario, credits, opening }: Props) {
           <button
             className="toolbar-btn scene-menu-toggle"
             onClick={() => setMenuOpen((v) => !v)}
-            aria-label="シーン選択"
+            aria-label={t.sceneMenu}
           >
             <span className="scene-menu-icon" />
             <span className="scene-menu-icon" />
@@ -195,7 +197,7 @@ export function ScenarioPlayer({ scenario, credits, opening }: Props) {
                       className={`scene-menu-item${i === sceneIndex ? " scene-menu-item--active" : ""}`}
                       onClick={() => handleSceneJump(i)}
                     >
-                      {scene.title ?? `シーン${i + 1}`}
+                      {scene.title ?? t.scene(i + 1)}
                     </li>
                   )
                 )}

@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useLanguage } from "../i18n";
 import type { Credits } from "../types/sprite";
 
 interface Props {
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export function EndingRoll({ credits, onEnd }: Props) {
+  const { t } = useLanguage();
   const [showFin, setShowFin] = useState(false);
 
   const handleScrollEnd = useCallback(() => {
@@ -16,7 +18,7 @@ export function EndingRoll({ credits, onEnd }: Props) {
   if (showFin) {
     return (
       <div className="ending-roll" onClick={onEnd}>
-        <div className="ending-fin">Fin.</div>
+        <div className="ending-fin">{t.fin}</div>
       </div>
     );
   }
