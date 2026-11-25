@@ -161,6 +161,75 @@ class AtomicWriteTest(unittest.TestCase):
             self.assertEqual(sorted(p.name for p in Path(tmp).iterdir()), ["episode1.json"])
 
 
+class AudioDirTest(unittest.TestCase):
+    def test_each_scenario_has_its_own_directory(self):
+        self.assertEqual(generate.scenario_audio_name(Path("public/scenarios/episode1.json")), "episode1")
+        self.assertNotEqual(generate.scenario_audio_name(Path("public/scenarios/episode1.json")),
+                            generate.scenario_audio_name(Path("public/scenarios/episode2.json")))
+
+    def test_prune_removes_everything_not_referenced(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            for name in ("aoi_keep.mp3", "aoi_old.mp3", ".aoi_new.mp3.abc.tmp", "aoi_old.wav"):
+                (d / name).write_bytes(b"x")
+            removed = generate.prune_audio_dir(d, {"aoi_keep.mp3"})
+            self.assertEqual(sorted(removed), [".aoi_new.mp3.abc.tmp", "aoi_old.mp3", "aoi_old.wav"])
+            self.assertEqual([p.name for p in d.iterdir()], ["aoi_keep.mp3"])
+
+    def test_prune_with_no_references_empties_the_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            (d / "aoi_old.mp3").write_bytes(b"x")
+            generate.prune_audio_dir(d, set())
+            self.assertEqual(list(d.iterdir()), [])
+
+    def test_prune_stops_without_deleting_when_a_subdirectory_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            (d / "aoi_old.mp3").write_bytes(b"x")
+            (d / "unexpected").mkdir()
+            with self.assertRaises(SystemExit):
+                generate.prune_audio_dir(d, set())
+            self.assertTrue((d / "aoi_old.mp3").exists())
+
+
+class ClaimAudioDirTest(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+        self.audio = self.root / "public" / "audio" / "episode1"
+        self.audio.mkdir(parents=True)
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def scenario(self, folder: str) -> Path:
+        path = self.root / folder / "episode1.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}", encoding="utf-8")
+        return path
+
+    def test_same_scenario_can_reuse_its_directory(self):
+        s = self.scenario("public/scenarios")
+        generate.claim_audio_dir(self.audio, s)
+        generate.claim_audio_dir(self.audio, s)
+
+    def test_another_scenario_with_the_same_name_is_rejected(self):
+        generate.claim_audio_dir(self.audio, self.scenario("public/scenarios"))
+        with self.assertRaises(SystemExit):
+            generate.claim_audio_dir(self.audio, self.scenario("public/scenarios/other"))
+
+    def test_owner_is_recorded_as_a_relative_path(self):
+        generate.claim_audio_dir(self.audio, self.scenario("public/scenarios"))
+        recorded = (self.audio / generate.OWNER_FILE).read_text(encoding="utf-8").strip()
+        self.assertEqual(recorded, "../../scenarios/episode1.json")
+
+    def test_prune_keeps_the_owner_file(self):
+        generate.claim_audio_dir(self.audio, self.scenario("public/scenarios"))
+        generate.prune_audio_dir(self.audio, set())
+        self.assertTrue((self.audio / generate.OWNER_FILE).exists())
+
+
 @unittest.skipUnless(shutil.which("ffmpeg"), "ffmpeg が必要")
 class EncodeMp3Test(unittest.TestCase):
     def test_success_publishes_only_the_mp3(self):

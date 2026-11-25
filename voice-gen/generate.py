@@ -10,6 +10,9 @@
 
 合成に使う値を増やすときは line_spec に足す。synthesize が line_spec 以外から値を読むと、
 その値はハッシュに入らず、変えても既存の mp3 が使い回される。
+
+mp3 はシナリオごとのディレクトリ <public-dir>/audio/<シナリオのファイル名から拡張子を除いたもの>/ に置く。
+このディレクトリはそのシナリオ専用で、実行が成功するたびに、シナリオから参照されていないファイルを消す。
 """
 
 from __future__ import annotations
@@ -54,7 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--voices", type=Path, default=Path("voices.json"),
                         help="キャラクター ID → 音声設定の JSON（既定: voices.json）")
     parser.add_argument("--public-dir", type=Path, default=Path("public"),
-                        help="音声を書き出す public ディレクトリ。<public-dir>/audio/ に出力（既定: public）")
+                        help="public ディレクトリ。音声は <public-dir>/audio/<シナリオ名>/ に出力（既定: public）")
     encoding = parser.add_mutually_exclusive_group()
     # default を None にして既定値は mp3_encoding_args で補う。Python 3.9 の argparse は、値が default と
     # 同一オブジェクトだと未指定とみなすので、default=8 だと --vbr-quality 8 --bitrate 32k が排他エラーにならない
@@ -196,6 +199,44 @@ def write_text_atomic(path: Path, text: str) -> None:
         raise
 
 
+def scenario_audio_name(scenario_path: Path) -> str:
+    """シナリオ専用の音声ディレクトリ名。public/scenarios/episode1.json なら episode1"""
+    return scenario_path.stem
+
+
+OWNER_FILE = ".scenario"
+
+
+def claim_audio_dir(audio_dir: Path, scenario_path: Path) -> None:
+    """audio_dir がこのシナリオ専用であることを確かめ、記録する。
+    別のフォルダにある同名のシナリオが同じディレクトリを使うと、互いのファイルを消し合うので止める"""
+    # 音声ディレクトリは public/ ごと公開されるので、ローカルの絶対パスは書かず、相対パスで記録する
+    owner = Path(os.path.relpath(scenario_path.resolve(), audio_dir.resolve())).as_posix()
+    owner_file = audio_dir / OWNER_FILE
+    if owner_file.exists():
+        recorded = owner_file.read_text(encoding="utf-8").strip()
+        if recorded != owner:
+            raise SystemExit(
+                f"{audio_dir} は別のシナリオ（{recorded}）の音声ディレクトリです。"
+                "シナリオのファイル名を変えるか、移動・改名したシナリオならこのディレクトリを消してください"
+            )
+    else:
+        write_text_atomic(owner_file, owner + "\n")
+
+
+def prune_audio_dir(audio_dir: Path, keep: set[str]) -> list[str]:
+    """audio_dir から keep 以外のファイルを消し、消したファイル名を返す。
+    audio_dir はシナリオ専用なので、参照されていない mp3、中断で残った一時ファイルなど、すべて消してよい"""
+    targets = [entry for entry in sorted(audio_dir.iterdir()) if entry.name not in keep | {OWNER_FILE}]
+    # 想定外のディレクトリがあれば、何も消さずに止める
+    for entry in targets:
+        if entry.is_dir() and not entry.is_symlink():
+            raise SystemExit(f"音声ディレクトリにディレクトリがあります。消さずに止めます: {entry}")
+    for entry in targets:
+        entry.unlink()
+    return [entry.name for entry in targets]
+
+
 # --- 実行 -------------------------------------------------------------------
 
 def main() -> None:
@@ -223,7 +264,8 @@ def main() -> None:
     pipeline = pipeline_digest()
 
     scenario_path: Path = args.scenario
-    audio_dir: Path = args.public_dir / "audio"
+    audio_name = scenario_audio_name(scenario_path)
+    audio_dir: Path = args.public_dir / "audio" / audio_name
 
     # 声の割り当て: {"<characterId>": {"name", "vvm", "style_id", "speed", "intonation"}}
     character_voice = load_voices(args.voices)
@@ -242,7 +284,6 @@ def main() -> None:
     logger.info("音声合成対象のセリフ数: %d", len(dialogues))
     if not dialogues:
         logger.warning("セリフが見つかりませんでした")
-        return
 
     # 未定義のキャラクターがあれば合成前に止める
     missing = sorted({c for _, _, c, _ in dialogues} - character_voice.keys())
@@ -258,16 +299,19 @@ def main() -> None:
         model_sha256[vvm_file] = file_sha256(vvm_path)
 
     audio_dir.mkdir(parents=True, exist_ok=True)
+    claim_audio_dir(audio_dir, scenario_path)
 
     # 生成条件のハッシュがファイル名。同じ名前のファイルがあれば作り直さない
     to_generate: list[tuple[str, dict, Path]] = []  # (char_id, spec, mp3_path)
+    referenced: list[Path] = []
     for si, li, char_id, text in dialogues:
         voice = character_voice[char_id]
         spec = line_spec(text, voice, model_sha256[voice["vvm"]])
         h = audio_hash(generation_key(spec, encoding_args, engine, pipeline))
         mp3_filename = f"{char_id}_{h}.mp3"
         mp3_path = audio_dir / mp3_filename
-        episode["scenes"][si]["dialogue"][li]["audio"] = f"/audio/{mp3_filename}"
+        referenced.append(mp3_path)
+        episode["scenes"][si]["dialogue"][li]["audio"] = f"/audio/{audio_name}/{mp3_filename}"
         if not mp3_path.exists():
             to_generate.append((char_id, spec, mp3_path))
 
@@ -307,7 +351,13 @@ def main() -> None:
     write_text_atomic(scenario_path, json.dumps(episode, ensure_ascii=False, indent=2) + "\n")
     logger.info("シナリオを更新: %s", scenario_path)
 
-    logger.info("完了! 生成: %d, スキップ: %d", len(to_generate), len(dialogues) - len(to_generate))
+    # シナリオを書き戻してから消す。書き戻しに失敗したときは、元のシナリオが参照するファイルが残る
+    removed = prune_audio_dir(audio_dir, {mp3_path.name for mp3_path in referenced})
+    for name in removed:
+        logger.info("[削除] %s", audio_dir / name)
+
+    logger.info("完了! 生成: %d, スキップ: %d, 削除: %d",
+                len(to_generate), len(dialogues) - len(to_generate), len(removed))
 
 
 if __name__ == "__main__":
