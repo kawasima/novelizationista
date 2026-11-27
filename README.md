@@ -136,7 +136,7 @@ python3 node_modules/novelizationista/tools/txt2scenario.py scenario/episode1.tx
 | `@background path` | Background of the next scene. Without it, the previous background carries over |
 | `@bgm path` / `@bgm none` | BGM of the next scene. `none` stops it. Without it, the current track keeps playing |
 | `@transition` | Makes the next scene a narration over a dark screen |
-| `@slide path` / `@slide none` | Shows a slide from the next line on. It stays until `none` or the end of the scene |
+| `@slide path` / `@slide none` | Shows a slide from the next line on. It stays until `none` or the end of the scene. A path ending in `.mp4`, `.webm`, `.mov` or `.m4v` is played as a muted, looping video with a play/pause button and a seek bar below it |
 | `名前「セリフ」` | A spoken line, when the name matches `characters[].name` in `config.json` |
 | Any other line | Narration (no sprite, no voice) |
 

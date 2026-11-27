@@ -377,6 +377,78 @@
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
 }
 
+/* 動画のスライド。下に再生位置のスライダーを付ける */
+.slide-video {
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8vh;
+  min-height: 0;
+}
+
+.slide-video__media {
+  min-height: 0;
+  cursor: pointer;
+}
+
+.slide-video__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.8vw;
+  width: 100%;
+  padding: 0.6vh 1vw;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 999px;
+  color: #fff;
+  font-size: max(12px, 1.6vh);
+  font-variant-numeric: tabular-nums;
+}
+
+.slide-video__toggle {
+  flex: none;
+  width: 2.4em;
+  height: 2.4em;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.slide-video__seek {
+  flex: 1;
+  height: 6px;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 3px;
+  background: linear-gradient(to right, #fff var(--nv-progress, 0%), rgba(255, 255, 255, 0.3) var(--nv-progress, 0%));
+  cursor: pointer;
+}
+
+.slide-video__seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.slide-video__seek::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.slide-video__time {
+  flex: none;
+}
+
 /* トランジションナレーション（暗転） */
 .transition-overlay {
   position: absolute;
