@@ -5,6 +5,7 @@ import { TransitionNarration } from "./TransitionNarration";
 import type { TransitionNarrationHandle } from "./TransitionNarration";
 import { EndingRoll } from "./EndingRoll";
 import { VolumePanel } from "./VolumePanel";
+import { SlideMedia } from "./SlideMedia";
 import { TermsContext } from "./RichText";
 import { useLanguage } from "../i18n";
 import { useVolume } from "../hooks/useVolumeControl";
@@ -218,7 +219,7 @@ export function ScenarioPlayer({ scenario, credits, opening }: Props) {
         <>
           {hasSlide && (
             <div className="slide-display">
-              <img src={currentSlide!} alt="" className="slide-image" />
+              <SlideMedia src={currentSlide!} />
             </div>
           )}
           <TalkingCharacter
