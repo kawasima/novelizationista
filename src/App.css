@@ -12,9 +12,9 @@
   --nv-window-height: calc(27vh * var(--nv-text-scale));
   --nv-window-max-height: 60vh;
   --nv-window-bottom: 3vh;
-  --nv-character-height: 72vh;
-  /* 立ち絵の下端。ウィンドウの裏に入る高さにして、切れ目を見せない */
-  --nv-character-bottom: 12vh;
+  --nv-character-height: 64vh;
+  /* 立ち絵の下端。ウィンドウの上端にそろえて、顔や胸元がウィンドウに隠れないようにする */
+  --nv-character-bottom: calc(var(--nv-window-height) + var(--nv-window-bottom));
   --nv-accent: #ffd36b;
 
   width: 100vw;
@@ -53,7 +53,7 @@
   inset: 0;
 }
 
-/* 立ち絵はメッセージウィンドウの後ろに立ち、下半身がウィンドウに隠れる */
+/* 立ち絵はメッセージウィンドウの上に立つ */
 .character-stage {
   position: absolute;
   left: 0;
