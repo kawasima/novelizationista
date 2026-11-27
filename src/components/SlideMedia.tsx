@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { CSSProperties, PointerEvent } from "react";
 
 const VIDEO = /\.(mp4|webm|mov|m4v)(\?.*)?$/i;
 
@@ -59,7 +60,7 @@ function SlideVideo({ src }: { src: string }) {
     v.pause();
   };
 
-  const endSeek = (e: React.PointerEvent<HTMLInputElement>) => {
+  const endSeek = (e: PointerEvent<HTMLInputElement>) => {
     const v = ref.current;
     seeking.current = false;
     if (v && resume.current) void v.play();
@@ -99,7 +100,7 @@ function SlideVideo({ src }: { src: string }) {
           step={0.05}
           value={time}
           tabIndex={-1}
-          style={{ "--nv-progress": `${duration ? (time / duration) * 100 : 0}%` } as React.CSSProperties}
+          style={{ "--nv-progress": `${duration ? (time / duration) * 100 : 0}%` } as CSSProperties}
           onPointerDown={startSeek}
           onPointerUp={endSeek}
           onChange={(e) => {

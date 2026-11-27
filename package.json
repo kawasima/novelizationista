@@ -13,7 +13,7 @@
     "tools"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json && node scripts/check-react-namespace.mjs"
   },
   "peerDependencies": {
     "react": "^19.2.0",

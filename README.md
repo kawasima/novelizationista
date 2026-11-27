@@ -337,6 +337,8 @@ npm run typecheck
 python3 -m unittest discover -s voice-gen
 ```
 
+`npm run typecheck` also fails when a file under `src` uses the global `React` namespace (`React.CSSProperties` and the like) instead of importing the type from `"react"`. A work type-checks the engine's sources with its own copy of `@types/react` next to the engine's, and the global namespace then refers to a different copy than the imported types, which breaks the work's build even though the engine alone type-checks.
+
 The Python tests do not need VOICEVOX. The ones that encode mp3 files need `ffmpeg` and are skipped without it.
 
 The engine has no screen of its own. Check changes by running `npm run dev` in a work's project; because it is a `file:` dependency, edits to the engine show up in the work's dev server right away.
