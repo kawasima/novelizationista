@@ -323,8 +323,8 @@ Layout dimensions are CSS custom properties. Override them by setting the same v
 | `--nv-window-height` | `calc(27vh * var(--nv-text-scale))` | Minimum height of the window; 36vh on portrait screens |
 | `--nv-window-max-height` | `60vh` | How far the window grows when the text does not fit |
 | `--nv-window-bottom` | `3vh` | Space below the window |
-| `--nv-character-height` | `72vh` | Height of the character sprite |
-| `--nv-character-bottom` | `12vh` | Bottom edge of the sprite, set so it tucks behind the window |
+| `--nv-character-height` | `64vh` | Height of the character sprite |
+| `--nv-character-bottom` | `calc(var(--nv-window-height) + var(--nv-window-bottom))` | Bottom edge of the sprite. It stands on the top edge of the window, so the face and chest are not covered |
 | `--nv-accent` | `#ffd36b` | Color of the name plate and marked words |
 
 `--nv-text-scale` is set from the 文字 slider in the settings panel; do not override it.
